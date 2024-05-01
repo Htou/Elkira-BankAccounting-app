@@ -1,17 +1,43 @@
 package org.example;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Main {
-    public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+import static spark.Spark.*;
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
-        }
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import org.example.config.AppModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class Main {
+    private static final Logger logger = LoggerFactory.getLogger(Main.class);
+
+    public static void main(String[] args) {
+        Injector injector = Guice.createInjector(new AppModule());
+
+        setupCORS();
+        setupRoutes();
+
+        // Startup logic
+        logger.info("Application starting...");
+
+        // Shutdown hook
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            logger.info("Application shutting down...");
+            stop(); // Stop Spark server
+        }));
+    }
+
+    private static void setupCORS() {
+        before((request, response) -> {
+            response.header("Access-Control-Allow-Origin", "*");
+            response.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+            response.header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With,Content-Length,Accept,Origin,");
+            response.type("application/json");
+        });
+    }
+
+    private static void setupRoutes() {
+        // Example route
+        get("/hello", (req, res) -> "Hello and welcome!");
     }
 }
