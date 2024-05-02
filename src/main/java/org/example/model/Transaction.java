@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public class Transaction {
     public enum Type {
-        INCOME, EXPENSE, SAVINGS_DEPOSIT, SAVINGS_WITHDRAWAL
+        INCOME, EXPENSE, SAVINGS_DEPOSIT, DEBT_PAYMENT, SAVINGS_WITHDRAWAL
     }
     private final String id;
     private final BigDecimal amount;
