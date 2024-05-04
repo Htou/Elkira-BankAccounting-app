@@ -1,24 +1,25 @@
 package org.example.finance;
 
 import com.google.inject.Inject;
-import org.example.model.Transaction;
-import org.example.model.TransactionList;
+import org.example.finance.interfaces.IBalanceManager;
+import org.example.finance.interfaces.ITransactionProcessor;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 public class FinancialAccount {
-    private BigDecimal accountBalance;
-    private BigDecimal savingsBalance;
-    private BigDecimal debtAmount;
-    private TransactionList transactions;
+    private BigDecimal accountBalance = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN);
+    private BigDecimal savingsBalance = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN);
+    private BigDecimal debtAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN);
+    private TransactionList transactionList;
+    private final ITransactionProcessor transactionProcessor;
+    private final IBalanceManager balanceManager;
 
     @Inject
-    public FinancialAccount(TransactionList transactions) {
-        this.accountBalance = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN);
-        this.savingsBalance = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN);
-        this.debtAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN);
-        this.transactions = transactions;
+    public FinancialAccount(TransactionList transactionList, ITransactionProcessor transactionProcessor, IBalanceManager balanceManager) {
+        setTransactions(transactionList);
+        this.transactionProcessor = transactionProcessor;
+        this.balanceManager = balanceManager;
     }
 
     public BigDecimal getAccountBalance() {
@@ -34,92 +35,58 @@ public class FinancialAccount {
     }
 
     public TransactionList getTransactions() {
-        return transactions;
+        return transactionList;
     }
 
-    public synchronized void depositToAccountBalance(BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Amount must be positive");
-        }
-        this.accountBalance = accountBalance.add(amount).setScale(2, RoundingMode.HALF_EVEN);;
-    }
 
-    public synchronized void withdrawFromAccountBalance(BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) < 0 || amount.compareTo(accountBalance) > 0) {
-            throw new IllegalArgumentException("Invalid withdrawal amount");
-        }
-        this.accountBalance = accountBalance.subtract(amount).setScale(2, RoundingMode.HALF_EVEN);;
-    }
-
-    public synchronized void depositToSavingsBalance(BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Amount must be positive");
-        }
-        this.savingsBalance = savingsBalance.add(amount).setScale(2, RoundingMode.HALF_EVEN);;
-    }
-
-    public synchronized void withdrawFromSavingsBalance(BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) < 0 || amount.compareTo(savingsBalance) > 0) {
-            throw new IllegalArgumentException("Insufficient funds for savings withdrawal");
-        }
-        this.savingsBalance = savingsBalance.subtract(amount).setScale(2, RoundingMode.HALF_EVEN);;
-    }
-
-    public synchronized void payDebt(BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) < 0 || amount.compareTo(debtAmount) > 0) {
-            throw new IllegalArgumentException("Invalid payment amount");
-        }
-        this.debtAmount = debtAmount.subtract(amount).setScale(2, RoundingMode.HALF_EVEN);;
-    }
-
-    public void setTransactions(TransactionList transactions) {
-        if (transactions == null) {
+    public void setTransactions(TransactionList transactionList) {
+        if (transactionList == null) {
             throw new IllegalArgumentException("Transactions list cannot be null");
         }
-        this.transactions = transactions;
+        this.transactionList = transactionList;
     }
 
     public void addTransaction(Transaction transaction) {
         if (transaction == null) {
             throw new IllegalArgumentException("Transaction cannot be null");
         }
-        this.transactions.addTransaction(transaction);
+        this.transactionList.addTransaction(transaction);
         updateBalances(transaction);
     }
 
-    public synchronized void updateBalances(Transaction transaction) {
+    private synchronized void updateBalances(Transaction transaction) {
         BigDecimal amount = transaction.getAmount();
         switch (transaction.getType()) {
             case INCOME:
-                depositToAccountBalance(amount);
+                balanceManager.depositToAccountBalance(accountBalance, amount);
                 break;
             case EXPENSE:
                 if (amount.compareTo(accountBalance) <= 0) {
-                    accountBalance = accountBalance.subtract(amount);
+                    balanceManager.withdrawFromAccountBalance(accountBalance, amount);
                 } else {
                     throw new IllegalArgumentException("Insufficient funds for expense transaction");
                 }
                 break;
             case SAVINGS_DEPOSIT:
                 if (amount.compareTo(accountBalance) <= 0) {
-                    withdrawFromAccountBalance(amount);
-                    depositToSavingsBalance(amount);
+                    balanceManager.withdrawFromAccountBalance(accountBalance, amount);
+                    balanceManager.depositToSavingsBalance(savingsBalance, amount);
                 } else {
                     throw new IllegalArgumentException("Insufficient funds for savings deposit");
                 }
                 break;
             case SAVINGS_WITHDRAWAL:
                 if (amount.compareTo(savingsBalance) <= 0) {
-                    withdrawFromSavingsBalance(amount);
-                    depositToAccountBalance(amount);
+                    balanceManager.withdrawFromSavingsBalance(savingsBalance, amount);
+                    balanceManager.depositToAccountBalance(accountBalance, amount);
                 } else {
                     throw new IllegalArgumentException("Insufficient funds for savings withdrawal");
                 }
                 break;
             case DEBT_PAYMENT:
                 if (amount.compareTo(debtAmount) <= 0) {
-                    withdrawFromAccountBalance(amount);
-                    payDebt(amount);
+                    balanceManager.withdrawFromAccountBalance(accountBalance, amount);
+                    balanceManager.payDebt(debtAmount, amount);
                 } else {
                     throw new IllegalArgumentException("Insufficient debt amount for payment");
                 }
