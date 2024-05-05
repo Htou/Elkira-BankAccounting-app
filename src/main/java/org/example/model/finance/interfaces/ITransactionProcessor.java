@@ -1,6 +1,6 @@
-package org.example.finance.interfaces;
+package org.example.model.finance.interfaces;
 
-import org.example.finance.Transaction;
+import org.example.model.finance.Transaction;
 
 public interface ITransactionProcessor {
     void processIncome(Transaction transaction);

@@ -1,7 +1,7 @@
 package org.example.model;
 
 import com.google.inject.Inject;
-import org.example.finance.FinancialAccount;
+import org.example.model.finance.FinancialAccount;
 
 import java.time.LocalDate;
 
