@@ -4,6 +4,8 @@ import com.google.inject.Inject;
 import org.example.model.finance.FinancialAccount;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class User {
     private String username;
@@ -14,10 +16,10 @@ public class User {
     private LocalDate dateOfBirth;
     private String address;
     private String phoneNumber;
-    private FinancialAccount financialAccount;
+    private List<FinancialAccount> financialAccounts;
 
     @Inject
-    public User(String username, String password, String firstName, String lastName, String email, LocalDate dateOfBirth, String address, String phoneNumber, FinancialAccount financialAccount) {
+    public User(String username, String password, String firstName, String lastName, String email, LocalDate dateOfBirth, String address, String phoneNumber) {
         setUsername(username);
         setPassword(password);
         setFirstName(firstName);
@@ -26,7 +28,7 @@ public class User {
         setDateOfBirth(dateOfBirth);
         setAddress(address);
         setPhoneNumber(phoneNumber);
-        this.financialAccount = financialAccount;
+        this.financialAccounts = new ArrayList<>();
     }
 
     public String getUsername() {
@@ -56,8 +58,27 @@ public class User {
     public String getAddress() {
         return address;
     }
+
     public String getPhoneNumber() {
         return phoneNumber;
+    }
+
+    public List<FinancialAccount> getFinancialAccounts() {
+        return financialAccounts;
+    }
+
+    public void addFinancialAccount(FinancialAccount financialAccount) {
+        if (financialAccount == null) {
+            throw new IllegalArgumentException("Financial account cannot be null");
+        }
+        this.financialAccounts.add(financialAccount);
+    }
+
+    public void removeFinancialAccount(FinancialAccount financialAccount) {
+        if (financialAccount == null) {
+            throw new IllegalArgumentException("Financial account cannot be null");
+        }
+        this.financialAccounts.remove(financialAccount);
     }
 
     public void setUsername(String username) {

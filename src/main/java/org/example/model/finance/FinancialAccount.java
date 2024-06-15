@@ -1,58 +1,58 @@
 package org.example.model.finance;
 
 import com.google.inject.Inject;
-import org.example.model.finance.interfaces.IBalanceManager;
 import org.example.model.finance.interfaces.ITransactionProcessor;
+import org.example.model.finance.interfaces.TransactionEventListener;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class FinancialAccount {
-    private AtomicReference<BigDecimal> accountBalance = new AtomicReference<>(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN));
-    private AtomicReference<BigDecimal> savingsBalance = new AtomicReference<>(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN));
-    private AtomicReference<BigDecimal> debtAmount = new AtomicReference<>(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN));
-    private TransactionList transactionList;
+public class FinancialAccount implements TransactionEventListener {
+    private final AtomicReference<BigDecimal> accountBalance = new AtomicReference<>(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN));
+    private final AtomicReference<BigDecimal> savingsBalance = new AtomicReference<>(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN));
+    private final AtomicReference<BigDecimal> debtAmount = new AtomicReference<>(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN));
+    private final TransactionList transactionList;
     private final ITransactionProcessor transactionProcessor;
-    private final IBalanceManager balanceManager;
 
     @Inject
-    public FinancialAccount(TransactionList transactionList, ITransactionProcessor transactionProcessor, IBalanceManager balanceManager) {
-        setTransactions(transactionList);
+    public FinancialAccount(TransactionList transactionList, ITransactionProcessor transactionProcessor) {
+        this.transactionList = transactionList;
         this.transactionProcessor = transactionProcessor;
-        this.balanceManager = balanceManager;
+        this.transactionProcessor.addTransactionEventListener(this); // Register as a listener
     }
 
-    public AtomicReference<BigDecimal> getAccountBalance() {
-        return accountBalance;
+    public void unregisterFromProcessor() {
+        this.transactionProcessor.removeTransactionEventListener(this); // Unregister as a listener
     }
 
-    public AtomicReference<BigDecimal> getSavingsBalance() {
-        return savingsBalance;
+    public BigDecimal getAccountBalance() {
+        return accountBalance.get();
     }
 
-    public AtomicReference<BigDecimal> getDebtAmount() {
-        return debtAmount;
+    public BigDecimal getSavingsBalance() {
+        return savingsBalance.get();
+    }
+
+    public BigDecimal getDebtAmount() {
+        return debtAmount.get();
     }
 
     public TransactionList getTransactions() {
-        return transactionList;
-    }
-
-
-    public void setTransactions(TransactionList transactionList) {
-        if (transactionList == null) {
-            throw new IllegalArgumentException("Transactions list cannot be null");
-        }
-        this.transactionList = transactionList;
+        return this.transactionList;
     }
 
     public void addTransaction(Transaction transaction) {
         if (transaction == null) {
             throw new IllegalArgumentException("Transaction cannot be null");
         }
-        this.transactionList.addTransaction(transaction);
-        balanceManager.updateAccountBalances(transaction, accountBalance, savingsBalance, debtAmount);
+        transactionProcessor.processTransaction(transaction, accountBalance, savingsBalance, debtAmount);
+        transactionList.addTransaction(transaction);
+    }
+
+    @Override
+    public void onTransactionProcessed(Transaction transaction, AtomicReference<BigDecimal> accountBalance, AtomicReference<BigDecimal> savingsBalance, AtomicReference<BigDecimal> debtAmount) {
+        // Handle the event, for example, logging or updating a UI component
+        System.out.println("Transaction processed: " + transaction);
     }
 }
-
