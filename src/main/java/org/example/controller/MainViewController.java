@@ -1,4 +1,4 @@
 package org.example.controller;
 
-public class ButgetController {
+public class MainViewController {
 }

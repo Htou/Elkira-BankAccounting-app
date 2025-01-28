@@ -5,6 +5,7 @@ import static spark.Spark.*;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.example.config.AppModule;
+import org.example.service.BankingApplication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +26,9 @@ public class Main {
             logger.info("Application shutting down...");
             stop(); // Stop Spark server
         }));
+
+        BankingApplication app = new BankingApplication();
+        app.run();
     }
 
     private static void setupCORS() {
